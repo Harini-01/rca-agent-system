@@ -6,6 +6,7 @@ import shlex
 ALLOWED_COMMANDS = {
     "ps",
     "top",
+    "htop",
     "free",
     "vmstat",
     "iostat",
@@ -42,6 +43,7 @@ def run_command(command: str, timeout: int = 5) -> dict:
         # Execute command
         result = subprocess.run(
             parts,
+            shell=True,
             capture_output=True,
             text=True,
             timeout=timeout

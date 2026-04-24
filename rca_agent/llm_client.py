@@ -1,53 +1,70 @@
-# Interface with Gemini API
-import os
-from google import genai
+# Interface with Ollama (local LLM)
+import requests
 
-class GeminiClient:
-    def __init__(self, model="gemini-2.5-flash"):
-        """Initialize Gemini client with API key from environment."""
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable not set")
-        
-        self.client = genai.Client(api_key=api_key)
+
+class OllamaClient:
+    def __init__(self, model="phi3"):
+        """Initialize Ollama client."""
         self.model = model
+        self.url = "http://localhost:11434/api/generate"
 
     def generate(self, prompt, system_prompt=None):
-        """Generate response from Gemini."""
+        """Generate response from Ollama."""
         try:
-            # Combine system and user prompts
+            # Combine system + user prompt (same behavior as Gemini)
             if system_prompt:
                 full_prompt = f"{system_prompt}\n\nUser: {prompt}"
             else:
                 full_prompt = prompt
 
-            # Generate content
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=full_prompt
+            response = requests.post(
+                self.url,
+                json={
+                    "model": self.model,
+                    "prompt": full_prompt,
+                    "stream": False
+                },
+                timeout=180
             )
 
+            if response.status_code != 200:
+                return {
+                    "error": f"Ollama API error: {response.text}",
+                    "status": "error"
+                }
+
+            result = response.json()
+
             return {
-                "response": response.text,
+                "response": result.get("response", ""),
                 "status": "success"
             }
 
-        except ValueError as e:
-            return {"error": f"Invalid request: {str(e)}", "status": "error"}
+        except requests.exceptions.ConnectionError:
+            return {
+                "error": "Could not connect to Ollama. Is it running?",
+                "status": "error"
+            }
         except Exception as e:
-            return {"error": f"Generation failed: {str(e)}", "status": "error"}
+            return {
+                "error": f"Generation failed: {str(e)}",
+                "status": "error"
+            }
 
     def test_connection(self):
-        """Test if Gemini API is accessible."""
+        """Test if Ollama is running."""
         try:
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents="Hello"
-            )
-            return {
-                "status": "connected",
-                "message": f"Successfully connected to {self.model}"
-            }
+            response = requests.get("http://localhost:11434")
+            if response.status_code == 200:
+                return {
+                    "status": "connected",
+                    "message": f"Ollama is running (model: {self.model})"
+                }
+            else:
+                return {
+                    "status": "disconnected",
+                    "message": "Ollama server not responding"
+                }
         except Exception as e:
             return {
                 "status": "disconnected",
@@ -55,10 +72,17 @@ class GeminiClient:
             }
 
     def list_available_models(self):
-        """List all available models."""
+        """List locally available models."""
         try:
-            models_list = self.client.models.list()
-            models = [model.name for model in models_list]
-            return {"status": "success", "models": models}
+            response = requests.get("http://localhost:11434/api/tags")
+            models = [m["name"] for m in response.json().get("models", [])]
+
+            return {
+                "status": "success",
+                "models": models
+            }
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e)
+            }
