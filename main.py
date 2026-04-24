@@ -191,6 +191,8 @@ Note: High CPU usage detected from system metrics.
 
             # Reset after RCA (important)
             anomaly_score = 0
+
+            
 # ================================
 # 🔌 LLM TEST
 # ================================
