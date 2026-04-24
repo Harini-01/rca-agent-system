@@ -86,3 +86,28 @@ class OllamaClient:
                 "status": "error",
                 "message": str(e)
             }
+
+
+from google import genai
+
+class GeminiClient:
+    def __init__(self):
+        self.client = genai.Client(api_key="AIzaSyCTozMq31ghFSL4wqgOO1D7uzda4MosHuQ")
+
+    def generate(self, prompt):
+        try:
+            response = self.client.models.generate_content(
+                model="gemini-2.0-flash-lite",
+                contents=prompt
+            )
+
+            text = response.text.strip()
+
+            # 🔥 Remove markdown if Gemini adds it
+            if text.startswith("```"):
+                text = text.split("```")[1]
+
+            return {"response": text}
+
+        except Exception as e:
+            return {"error": str(e)}

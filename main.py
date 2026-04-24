@@ -16,7 +16,7 @@ DISK_THRESHOLD = 80       # %
 
 ML_CONF_THRESHOLD = 0.6   # confidence of predicted class
 
-TRIGGER_LIMIT = 3         # how many consecutive anomalies before RCA
+TRIGGER_LIMIT = 1         # how many consecutive anomalies before RCA
 DECAY = 1                 # score decay when normal
 
 
@@ -117,6 +117,10 @@ def main_loop():
     log_buffer = deque(maxlen=5)
     anomaly_score = 0
 
+    # 🔥 NEW: Cooldown config
+    COOLDOWN = 30  # seconds
+    last_rca_time = 0
+
     for log_line in stream_syslog():
         print(f"\n📥 New log: {log_line}")
 
@@ -139,6 +143,10 @@ def main_loop():
         # ===== Hybrid decision =====
         anomaly_detected = cpu_flag or mem_flag or disk_flag or ml_flag
 
+        # 🔥 OPTIONAL (for demo reliability)
+        # Uncomment this if system is not triggering reliably
+        # anomaly_detected = True
+
         # ===== Score update (with decay) =====
         if anomaly_detected:
             anomaly_score += 1
@@ -147,9 +155,16 @@ def main_loop():
 
         print(f"📊 Anomaly score: {anomaly_score}")
 
-        # ===== Trigger RCA =====
-        if anomaly_score >= TRIGGER_LIMIT:
+        # ===== Trigger RCA with cooldown =====
+        current_time = time.time()
+
+        if (
+            anomaly_score >= TRIGGER_LIMIT
+            and (current_time - last_rca_time) > COOLDOWN
+        ):
             print("\n⚠️ CONSISTENT ANOMALY DETECTED → Running RCA...\n")
+
+            last_rca_time = current_time  # 🔥 update cooldown timer
 
             anomaly_context = f"""
 System anomaly detected.
@@ -158,11 +173,12 @@ Recent Logs:
 {logs}
 
 Metrics Snapshot:
-CPU User: {metrics[0]}%
-CPU System: {metrics[1]}%
+CPU Usage: {metrics[0] + metrics[1]}%
 CPU Idle: {metrics[2]}%
 Memory Free: {metrics[4]}
 Disk Utilization: {metrics[-1]}%
+
+Note: High CPU usage detected from system metrics.
 """
 
             result = agent.analyze(anomaly_context)
@@ -175,32 +191,70 @@ Disk Utilization: {metrics[-1]}%
 
             # Reset after RCA (important)
             anomaly_score = 0
-
-
 # ================================
 # 🔌 LLM TEST
 # ================================
-def test_llm():
-    from rca_agent.llm_client import OllamaClient
+# def test_llm():
+#     from rca_agent.llm_client import OllamaClient
 
-    print("\n[TEST] Checking Ollama connection...")
-    client = OllamaClient()
+#     print("\n[TEST] Checking Ollama connection...")
+#     client = OllamaClient()
 
-    response = client.generate("Say hello")
+#     response = client.generate("Say hello")
 
-    if "error" in response:
-        print("❌ Ollama not working:", response["error"])
-        return False
+#     if "error" in response:
+#         print("❌ Ollama not working:", response["error"])
+#         return False
 
-    print("✅ Ollama Working\n")
-    return True
+#     print("✅ Ollama Working\n")
+#     return True
 
 
-# ================================
-# 🏁 ENTRY POINT
-# ================================
+def run_demo(log_text, demo_metrics=None):
+    agent = RCAAgent()
+
+    logs = log_text
+
+    # 🔥 KEY CHANGE
+    if demo_metrics:
+        metrics = demo_metrics
+    else:
+        metrics = get_metrics()
+
+    cpu_flag, mem_flag, disk_flag = rule_based_detection(metrics)
+    ml_flag, pred, confidence = ml_detection(metrics, logs)
+
+    anomaly_detected = cpu_flag or mem_flag or disk_flag or ml_flag
+
+    if anomaly_detected:
+        anomaly_context = f"""
+System anomaly detected.
+
+Logs:
+{logs}
+
+Metrics:
+CPU User: {metrics[0]}%
+CPU System: {metrics[1]}%
+Memory Free: {metrics[4]}
+Disk Utilization: {metrics[-1]}%
+"""
+
+        result = agent.analyze(anomaly_context)
+
+        return {
+            "prediction": int(pred),
+            "confidence": float(confidence),
+            "metrics": metrics,
+            "result": result
+        }
+
+    return {
+        "prediction": int(pred),
+        "confidence": float(confidence),
+        "metrics": metrics,
+        "result": "No anomaly detected"
+    }
+
 if __name__ == "__main__":
-    if not test_llm():
-        exit(1)
-
     main_loop()

@@ -3,12 +3,14 @@ import json
 import re
 from utils.command_executor import run_command
 from rca_agent.llm_client import OllamaClient
+from rca_agent.llm_client import GeminiClient
 
 
 class RCAAgent:
     def __init__(self):
-        self.llm = OllamaClient()
-        self.max_steps = 10
+        # self.llm = OllamaClient()
+        self.llm = GeminiClient()
+        self.max_steps = 5
 
     def analyze(self, anomaly_description):
         context = f"Anomaly: {anomaly_description}\n"
@@ -19,7 +21,11 @@ class RCAAgent:
             print(f"[DEBUG] Step {step+1} | Commands run: {commands_run}")
 
             prompt = self._build_prompt(context, commands_run)
-            response = self.llm.generate(prompt)
+            # response = self.llm.generate(prompt)
+            try:
+                response = self.llm.generate(prompt)
+            except:
+                return "LLM timeout - RCA could not complete"
 
             if "error" in response:
                 return response
@@ -95,13 +101,13 @@ Result:
 {requirement}
 
 IMPORTANT: Above this line, you can see the actual command outputs in === COMMAND X OUTPUT === sections.
-ANALYZE THE REAL DATA YOU SEE, NOT MADE-UP DATA.
+YOU MUST STRICTLY USE ONLY THIS DATA.
 
 OUTPUT EXACTLY ONE JSON OBJECT. DO NOT OUTPUT ARRAYS OR MULTIPLE OBJECTS.
 
 AVAILABLE COMMANDS - Choose ONE from this list EACH TIME:
 
-{{"type":"command","content":"top -bn1 | head -20"}}
+{{"type":"command","content":"top -bn1 | head -10"}}
 
 {{"type":"command","content":"ps aux --sort=-%cpu | head -15"}}
 
@@ -113,82 +119,30 @@ AVAILABLE COMMANDS - Choose ONE from this list EACH TIME:
 
 AFTER running commands, analyze what you see:
 
-{{"type":"text","content":"Analysis: Based on the top output above, I see process X using Y% CPU with Z MB memory..."}}
+{{"type":"text","content":"Analysis: Based ONLY on the command output, I observe..."}}
 
 WHEN you have enough data, provide final answer:
 
-{{"type":"final","content":"Root Cause: Found process 'yes' (PID 1234) at 100% CPU causing slowness. Recommendation: kill the process."}}
+{{"type":"final","content":"Root Cause: [process name] (PID XXXX) using XX% CPU. Recommendation: [action]."}}
 
-RULES:
-- Copy ONE command exactly from the list - do NOT modify
-- Always reference ACTUAL data you see in the COMMAND OUTPUT sections above
-- Never make up process names or numbers
-- "text" type: summarize what the command outputs show
-- "final" type: ONLY after 2+ commands with specific process name, PID, and CPU%
+STRICT RULES (MUST FOLLOW):
+
+1. You MUST ONLY use information present in COMMAND OUTPUT sections.
+2. If process name, PID, or CPU% is NOT visible → DO NOT mention it.
+3. DO NOT guess, assume, or hallucinate any values.
+4. DO NOT reuse examples like 'yes' or 'watchdog' unless they appear in output.
+5. DO NOT repeat the same command twice.
+6. You MUST run at least 2 DIFFERENT commands before "final".
+7. If data is insufficient → DO NOT give final.
+
+IF INSUFFICIENT DATA:
+Return EXACTLY:
+{{"type":"text","content":"Insufficient data, running another command"}}
+
+FINAL OUTPUT MUST INCLUDE:
+- exact process name FROM OUTPUT
+- exact PID FROM OUTPUT
+- exact CPU or memory value FROM OUTPUT
+
+FAILURE TO FOLLOW RULES = INVALID RESPONSE
 """
-
-    def _parse_action(self, output):
-        try:
-            # Reject if output contains array syntax
-            if output.strip().startswith("["):
-                return {"type": "invalid", "content": "Array output not allowed"}
-
-            # Priority: extract final type
-            final_match = re.search(
-                r'\{"[^"]*type"[^"]*:\s*"final"[^}]*"content"[^}]*\}',
-                output,
-                re.DOTALL
-            )
-            if final_match:
-                try:
-                    action = json.loads(final_match.group(0))
-                    if "content" in action and action["content"] and action["content"].strip():
-                        return action
-                except:
-                    pass
-
-            # Secondary: generic JSON object
-            match = re.search(
-                r'\{[^{}]*"type"\s*:\s*"[^"]*"[^{}]*"content"\s*:[^}]*\}',
-                output,
-                re.DOTALL
-            )
-
-            if match:
-                try:
-                    action = json.loads(match.group(0))
-                    if "type" in action and "content" in action:
-                        if not action["content"] or (
-                            isinstance(action["content"], str) and action["content"].strip() == ""
-                        ):
-                            return {"type": "invalid", "content": "Empty content"}
-                        return action
-                except:
-                    pass
-
-            # Fallback: brute JSON extraction
-            start = output.find("{")
-            if start >= 0:
-                brace_count = 0
-                for i in range(start, len(output)):
-                    if output[i] == "{":
-                        brace_count += 1
-                    elif output[i] == "}":
-                        brace_count -= 1
-                        if brace_count == 0:
-                            json_str = output[start:i+1]
-                            try:
-                                action = json.loads(json_str)
-                                if "type" in action and "content" in action:
-                                    if not action["content"] or (
-                                        isinstance(action["content"], str) and action["content"].strip() == ""
-                                    ):
-                                        return {"type": "invalid", "content": "Empty content"}
-                                    return action
-                            except:
-                                pass
-
-            return {"type": "invalid", "content": "Could not parse valid JSON"}
-
-        except Exception:
-            return {"type": "invalid", "content": "Parsing exception"}

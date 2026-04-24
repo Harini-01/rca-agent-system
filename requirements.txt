@@ -9,3 +9,5 @@ xgboost
 torch
 transformers
 psutil
+streamlit
+google-genai

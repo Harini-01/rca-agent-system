@@ -1,0 +1,5 @@
+Apr 24 12:20:01 kernel: EXT4-fs error (device sda1): ext4_find_entry:1452: inode #2: comm bash: reading directory lblock 0
+Apr 24 12:20:02 kernel: blk_update_request: I/O error, dev sda, sector 123456
+Apr 24 12:20:03 kernel: Buffer I/O error on dev sda1, logical block 0
+Apr 24 12:20:05 kernel: INFO: task jbd2/sda1-8:123 blocked for more than 120 seconds
+Apr 24 12:20:06 kernel: disk utilization high, I/O wait increasing

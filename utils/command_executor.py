@@ -65,3 +65,52 @@ def run_command(command: str, timeout: int = 5) -> dict:
         return {
             "error": str(e)
         }
+
+
+# def run_command(cmd):
+#     # 🔥 DEMO MODE
+#     if "ps aux" in cmd:
+#         return {
+#             "return_code": 0,
+#             "stdout": """
+# USER   PID %CPU %MEM COMMAND
+# root  2345 99.5  0.1 yes
+# root  1111  2.0  0.5 systemd
+# """,
+#             "stderr": ""
+#         }
+
+#     if "top" in cmd:
+#         return {
+#             "return_code": 0,
+#             "stdout": """
+# %Cpu(s): 95.0 us, 5.0 sy
+# PID USER %CPU COMMAND
+# 2345 root 99.5 yes
+# """,
+#             "stderr": ""
+#         }
+
+#     if "free -m" in cmd:
+#         return {
+#             "return_code": 0,
+#             "stdout": """
+# Mem: 8000 total, 7800 used, 200 free
+# """,
+#             "stderr": ""
+#         }
+
+#     if "iostat" in cmd:
+#         return {
+#             "return_code": 0,
+#             "stdout": """
+# Device: sda %util 92.0
+# """,
+#             "stderr": ""
+#         }
+
+#     return {
+#         "return_code": 1,
+#         "stdout": "",
+#         "stderr": "Command not allowed"
+#     }

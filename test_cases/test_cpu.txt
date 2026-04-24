@@ -1,0 +1,7 @@
+Apr 24 10:15:32 systemd[1]: Started Session 245 of user root.
+Apr 24 10:15:35 kernel: CPU0: Core temperature above threshold, cpu clock throttled
+Apr 24 10:15:36 kernel: CPU0: Core temperature/speed normal
+Apr 24 10:15:40 systemd[1]: Starting Cleanup of Temporary Directories...
+Apr 24 10:15:42 kernel: task: yes pid:2345 blocked for more than 120 seconds
+Apr 24 10:15:42 kernel: CPU usage high, system under heavy load
+Apr 24 10:15:43 kernel: watchdog: BUG: soft lockup - CPU#0 stuck for 23s!

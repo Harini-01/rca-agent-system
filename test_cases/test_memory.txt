@@ -1,0 +1,5 @@
+Apr 24 11:02:10 kernel: Out of memory: Kill process 4567 (python) score 987 or sacrifice child
+Apr 24 11:02:10 kernel: Killed process 4567 (python) total-vm:2048000kB
+Apr 24 11:02:11 systemd[1]: Started Cleanup of Temporary Directories.
+Apr 24 11:02:12 kernel: oom_reaper: reaped process 4567 (python)
+Apr 24 11:02:15 kernel: Memory cgroup out of memory: Kill process 8910 (java)
