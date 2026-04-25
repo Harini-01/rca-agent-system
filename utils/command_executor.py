@@ -17,7 +17,14 @@ ALLOWED_COMMANDS = {
     "awk",
     "sed",
     "head",
-    "tail"
+    "tail",
+    "df",
+    "ss",
+    "lsof",
+    "systemctl",
+    "pidstat",
+    "uname",
+    "uptime",
 }
 
 def run_command(command: str, timeout: int = 5) -> dict:
@@ -40,9 +47,9 @@ def run_command(command: str, timeout: int = 5) -> dict:
                 "error": f"Command '{base_cmd}' is not allowed."
             }
 
-        # Execute command
+        # Execute command with shell=True to support pipes and redirection
         result = subprocess.run(
-            parts,
+            command,
             shell=True,
             capture_output=True,
             text=True,

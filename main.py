@@ -118,7 +118,7 @@ def main_loop():
     anomaly_score = 0
 
     # 🔥 NEW: Cooldown config
-    COOLDOWN = 30  # seconds
+    COOLDOWN = 5  # seconds
     last_rca_time = 0
 
     for log_line in stream_syslog():
@@ -192,7 +192,10 @@ Note: High CPU usage detected from system metrics.
             # Reset after RCA (important)
             anomaly_score = 0
 
-            
+            # 🔥 EXIT AFTER FIRST RCA (for demo mode)
+            print("\n✅ RCA Complete. Exiting...\n")
+            break
+
 # ================================
 # 🔌 LLM TEST
 # ================================

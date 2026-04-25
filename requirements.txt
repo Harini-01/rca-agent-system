@@ -11,3 +11,4 @@ transformers
 psutil
 streamlit
 google-genai
+ollamafreeapi

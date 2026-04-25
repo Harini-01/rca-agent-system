@@ -92,12 +92,12 @@ from google import genai
 
 class GeminiClient:
     def __init__(self):
-        self.client = genai.Client(api_key="AIzaSyCTozMq31ghFSL4wqgOO1D7uzda4MosHuQ")
+        self.client = genai.Client(api_key="AIzaSyD-UCrRJncPs0-PSFB1bK_Dnytw1iKWDPs")
 
     def generate(self, prompt):
         try:
             response = self.client.models.generate_content(
-                model="gemini-2.0-flash-lite",
+                model="gemini-2.5-flash",
                 contents=prompt
             )
 
@@ -111,3 +111,26 @@ class GeminiClient:
 
         except Exception as e:
             return {"error": str(e)}
+
+
+from ollamafreeapi import OllamaFreeAPI
+
+class FreeLLMClient:
+    def __init__(self):
+        self.client = OllamaFreeAPI()
+
+    def generate(self, prompt):
+        try:
+            response = self.client.chat(
+                model="gpt-oss:20b",
+                prompt=prompt
+            )
+
+            return {
+                "response": response
+            }
+
+        except Exception as e:
+            return {
+                "error": str(e)
+            }
